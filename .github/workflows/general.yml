@@ -99,7 +99,7 @@ jobs:
         run: cargo clippy -- -D warnings
 
   coverage:
-    name: Code coverage
+    name: Code Coverage
     runs-on: ubuntu-latest
     services:
       postgres:
