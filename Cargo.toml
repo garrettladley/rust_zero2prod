@@ -25,6 +25,8 @@ secrecy = { version = "0.8", features = ["serde"] }
 tracing-actix-web = "0.5"
 
 [dependencies.sqlx]
+version = "0.5.7"
+default-features = false
 features = [
     "runtime-actix-rustls",
     "macros",
@@ -32,9 +34,9 @@ features = [
     "uuid",
     "chrono",
     "migrate",
+    "offline",
 ]
-version = "0.5.7"
-default-features = false
+
 
 [dev-dependencies]
 reqwest = "0.11"
