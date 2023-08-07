@@ -1,4 +1,4 @@
-use secrecy::Secret;
+use secrecy::{ExposeSecret, Secret};
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
