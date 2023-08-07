@@ -47,16 +47,15 @@ async fn spawn_app() -> TestApp {
 }
 
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
-    let mut connection =
-        PgConnection::connect(config.connection_string_without_db().expose_secret())
-            .await
-            .expect("Failed to connect to Postgres.");
+    let mut connection = PgConnection::connect(config.without_db())
+        .await
+        .expect("Failed to connect to Postgres.");
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
         .await
         .expect("Failed to create database.");
 
-    let connection_pool = PgPool::connect(config.connection_string().expose_secret())
+    let connection_pool = PgPool::connect(config.with_db())
         .await
         .expect("Failed to connect to Postgres.");
     sqlx::migrate!("./migrations")
@@ -87,7 +86,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
     let app = spawn_app().await;
 
     let client = reqwest::Client::new();
-    let body = "name=muneer%20lalji&email=muneer.lalji%40gmail.com";
+    let body = "name=Muneer%20Lalji&email=muneer.lalji%40gmail.com";
     let response = client
         .post(&format!("{}/subscriptions", &app.address))
         .header("Content-Type", "application/x-www-form-urlencoded")
@@ -111,7 +110,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
     let app = spawn_app().await;
     let client = reqwest::Client::new();
     let test_cases = vec![
-        ("name=muneer%20lalji", "missing the email"),
+        ("name=Muneer%20Lalji", "missing the email"),
         ("email=muneer.lalji%40gmail.com", "missing the name"),
         ("", "missing both name and email"),
     ];
@@ -130,6 +129,37 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
             response.status().as_u16(),
             "The API did not fail with 400 Bad Request when the payload was {}.",
             error_message
+        );
+    }
+}
+
+#[tokio::test]
+async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+    let test_cases = vec![
+        ("name=&email=muneer.lalji%40gmail.com", "empty name"),
+        ("name=Muneer%20Lalji&email=", "empty email"),
+        (
+            "name=Muneer%20Lalji&email=definitely-not-an-email",
+            "invalid email",
+        ),
+    ];
+
+    for (body, description) in test_cases {
+        let response = client
+            .post(&format!("{}/subscriptions", &app.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(invalid_body)
+            .send()
+            .await
+            .expect("Failed to execute request.");
+
+        assert_eq!(
+            400,
+            response.status().as_u16(),
+            "The API did not return a 400 Bad Request when the payload was {}.",
+            description
         );
     }
 }
