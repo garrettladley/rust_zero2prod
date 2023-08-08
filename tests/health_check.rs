@@ -1,5 +1,4 @@
 use once_cell::sync::Lazy;
-use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
@@ -47,21 +46,21 @@ async fn spawn_app() -> TestApp {
 }
 
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
-    let mut connection = PgConnection::connect(config.without_db())
+    let mut connection = PgConnection::connect_with(&config.without_db())
         .await
-        .expect("Failed to connect to Postgres.");
+        .expect("Failed to connect to Postgres");
     connection
-        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
+        .execute(&*format!(r#"CREATE DATABASE "{}";"#, config.database_name))
         .await
         .expect("Failed to create database.");
 
-    let connection_pool = PgPool::connect(config.with_db())
+    let connection_pool = PgPool::connect_with(config.with_db())
         .await
         .expect("Failed to connect to Postgres.");
     sqlx::migrate!("./migrations")
         .run(&connection_pool)
         .await
-        .expect("Failed to migrate database.");
+        .expect("Failed to migrate the database");
 
     connection_pool
 }
@@ -102,7 +101,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
         .await
         .expect("Failed to fetch saved subscription.");
     assert_eq!(saved.email, "muneer.lalji@gmail.com");
-    assert_eq!(saved.name, "muneer lalji");
+    assert_eq!(saved.name, "Muneer Lalji");
 }
 
 #[tokio::test]
@@ -150,7 +149,7 @@ async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
         let response = client
             .post(&format!("{}/subscriptions", &app.address))
             .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(invalid_body)
+            .body(body)
             .send()
             .await
             .expect("Failed to execute request.");

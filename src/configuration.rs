@@ -29,7 +29,7 @@ impl DatabaseSettings {
         PgConnectOptions::new()
             .host(&self.host)
             .username(&self.username)
-            .password(&self.password.expose_secret())
+            .password(self.password.expose_secret())
             .port(self.port)
             .ssl_mode(ssl_mode)
     }
@@ -56,11 +56,9 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         .unwrap_or_else(|_| "local".into())
         .try_into()
         .expect("Failed to parse APP_ENVIRONMENT.");
-    let environment_filename = format!("{}.yaml", enviroment.as_str());
+    let environment_filename = format!("{}.yml", enviroment.as_str());
     config::Config::builder()
-        .add_source(config::File::from(
-            configuration_directory.join("base.yaml"),
-        ))
+        .add_source(config::File::from(configuration_directory.join("base.yml")))
         .add_source(config::File::from(
             configuration_directory.join(environment_filename),
         ))
